@@ -1,2 +1,4 @@
 confluent-kafka==2.12.2
 pydantic==2.10.5
+pytest==7.4.3
+pytest-mock==3.12.0
