@@ -32,7 +32,7 @@ class TestKafkaProducer:
         producer.produce(topic="orders", value=order, callback=delivery_report)
 
         mock_producer_instance.produce.assert_called_once_with(
-            topic="orders", value=order, callback=delivery_report
+            topic="orders", key=None, value=order, callback=delivery_report
         )
 
     @patch("kafka.producer.Producer")
@@ -105,6 +105,70 @@ class TestKafkaProducer:
         # Both should use same callback
         assert first_call.kwargs["callback"] == delivery_report
         assert second_call.kwargs["callback"] == delivery_report
+
+    @patch("kafka.producer.Producer")
+    def test_produce_with_key(self, mock_producer, sample_order):
+        """
+        Test producing a message with a key for partitioning.
+        """
+        mock_producer_instance = Mock()
+        mock_producer.return_value = mock_producer_instance
+
+        producer = KafkaProducer()
+
+        order_key = sample_order.customer_id.encode("utf-8")
+        order_value = sample_order.model_dump_json().encode("utf-8")
+
+        producer.produce(
+            topic="orders",
+            key=order_key,
+            value=order_value,
+            callback=delivery_report,
+        )
+
+        mock_producer_instance.produce.assert_called_once_with(
+            topic="orders",
+            key=order_key,
+            value=order_value,
+            callback=delivery_report,
+        )
+
+    @patch("kafka.producer.Producer")
+    def test_produce_multiple_messages_with_same_key(self, mock_producer):
+        """
+        Test that messages with the same key maintain ordering (same partition).
+        """
+        mock_producer_instance = Mock()
+        mock_producer.return_value = mock_producer_instance
+
+        producer = KafkaProducer()
+
+        from models.order import Order
+
+        # Create multiple orders for the same customer
+        customer_key = b"customer-123"
+        orders = [
+            Order(customer_name="Alice", item="iPhone", quantity=1, price=999),
+            Order(customer_name="Alice", item="iPad", quantity=1, price=599),
+            Order(customer_name="Alice", item="MacBook", quantity=1, price=2499),
+        ]
+
+        # Produce all messages with the same key
+        for order in orders:
+            producer.produce(
+                topic="orders",
+                key=customer_key,
+                value=order.model_dump_json().encode("utf-8"),
+                callback=delivery_report,
+            )
+
+        # Verify all 3 messages were sent with the same key
+        assert mock_producer_instance.produce.call_count == 3
+
+        calls = mock_producer_instance.produce.call_args_list
+        for call in calls:
+            assert call.kwargs["key"] == customer_key
+            assert call.kwargs["topic"] == "orders"
 
 
 class TestDeliveryReport:

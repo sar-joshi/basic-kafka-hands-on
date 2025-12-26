@@ -18,16 +18,19 @@ class KafkaProducer:
         }
         self.producer = Producer(self.config)
 
-    def produce(self, topic: str, value: bytes, callback=None):
+    def produce(
+        self, topic: str, key: bytes = None, value: bytes = None, callback=None
+    ):
         """
         Produce a message to a Kafka topic.
 
         Args:
             topic: The Kafka topic to send the message to.
+            key: Optional message key for partitioning.
             value: The message value as bytes.
             callback: Optional callback function for delivery reports.
         """
-        self.producer.produce(topic=topic, value=value, callback=callback)
+        self.producer.produce(topic=topic, key=key, value=value, callback=callback)
 
     def flush(self):
         """
