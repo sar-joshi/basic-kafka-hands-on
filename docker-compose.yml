@@ -1,0 +1,52 @@
+services:
+
+  kafka:
+    image: confluentinc/cp-kafka:7.8.6
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_KRAFT_MODE: true
+      CLUSTER_ID: kafka-cluster-1
+
+      # Kafka broker node ID. Will be multiple in Prod environment. Also, can act as a Controller.
+      KAFKA_NODE_ID: 1
+
+      # Kafka process roles.
+      # In Kraft mode, we can have multiple roles for a single process.
+      KAFKA_PROCESS_ROLES: broker, controller 
+
+      # Controller election quorum voters. 
+      # Can have multiple controllers in the cluster for redundancy, ex: 2@kafka:9093, <node_id>@kafka:<port>.
+      # Here, 1@kafka:9093 means the controller is running on the same node as the broker.
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+
+      # Number of Metadata replicas. Each replica keeps track of which messages each consumer has read.
+      # If a broker goes down, the other replicas can continue to serve the topic's metadata.
+      # In production, we typically want at least 3 or higher number of replicas for high availability so the data is not lost.
+      # Default value is 3.
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+
+      # Specifies the network interfaces and ports on which the broker listens for incoming connections from clients and other brokers.`
+      # PLAINTEXT listener is used for client-to-broker communication. It is the default listener.
+      # In production, we want to expose the broker to the inside of the network so only the internal clients (consumers, producers) can connect to it.
+      # CONTROLLER listener is used for controller-to-controller communication.
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+
+      # Specifies the network addresses that other brokers and clients will use to connect to this broker.
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+
+      # Specifies the listener name for controller-to-controller communication.
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+      # Specifies the directory where the broker will store its log files.
+      # In production, we typically want to store the log files on a separate disk so the broker can continue to operate even if the main disk is corrupted.
+      # Default value is /tmp/kafka-logs.
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+
+    volumes:
+      - kraft-combined-logs:/var/lib/kafka/data
+
+volumes:
+  kraft-combined-logs:
