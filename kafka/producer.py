@@ -32,6 +32,21 @@ class KafkaProducer:
         """
         self.producer.produce(topic=topic, key=key, value=value, callback=callback)
 
+    def poll(self, timeout: float = 0):
+        """
+        Poll for events and trigger callbacks.
+
+        This method serves the delivery report callbacks and helps with back pressure
+        by freeing up space in the producer's internal buffer.
+
+        Args:
+            timeout: Maximum time to block (seconds). 0 = non-blocking.
+
+        Returns:
+            Number of events processed.
+        """
+        return self.producer.poll(timeout)
+
     def flush(self):
         """
         Flush will block until all buffered messages are sent to the broker.

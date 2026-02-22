@@ -170,6 +170,26 @@ class TestKafkaProducer:
             assert call.kwargs["key"] == customer_key
             assert call.kwargs["topic"] == "orders"
 
+    @patch("kafka.producer.Producer")
+    def test_poll_method(self, mock_producer):
+        """
+        Test that poll method triggers delivery callbacks.
+        """
+        mock_producer_instance = Mock()
+        mock_producer_instance.poll.return_value = 5  # 5 events processed
+        mock_producer.return_value = mock_producer_instance
+
+        producer = KafkaProducer()
+
+        # Test non-blocking poll
+        result = producer.poll(timeout=0)
+        mock_producer_instance.poll.assert_called_with(0)
+        assert result == 5
+
+        # Test blocking poll
+        result = producer.poll(timeout=1.0)
+        mock_producer_instance.poll.assert_called_with(1.0)
+
 
 class TestDeliveryReport:
     """
